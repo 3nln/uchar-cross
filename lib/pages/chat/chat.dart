@@ -48,6 +48,7 @@ import 'send_file_dialog.dart';
 import 'send_location_dialog.dart';
 
 import 'package:pasteboard/pasteboard.dart';
+import 'package:universal_html/html.dart' as html;
 
 class ChatPage extends StatelessWidget {
   final String roomId;
@@ -149,24 +150,106 @@ class ChatController extends State<ChatPageWithRoom>
   }
 
   Future<void> handlePaste() async {
+    if (kIsWeb) {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      if (data?.text != null) {
+        _insertTextAtCursor(data!.text!);
+      }
+      return;
+    }
+
     final imageBytes = await Pasteboard.image;
     final files = await Pasteboard.files();
 
     if (imageBytes != null || files.isNotEmpty) {
-      debugPrint("imageBytes: ${imageBytes?.length}");
       _showUploadDialog(imageBytes, files);
     } else {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
       if (data?.text != null) {
-        final currentText = sendController.text;
-        final selection = sendController.selection;
-        final newText = currentText.replaceRange(
-          selection.start,
-          selection.end,
-          data!.text!,
-        );
-        sendController.text = newText;
+        _insertTextAtCursor(data!.text!);
       }
+    }
+  }
+
+  void _insertTextAtCursor(String text) {
+    final currentText = sendController.text;
+    final selection = sendController.selection;
+    final newText = currentText.replaceRange(
+      selection.start,
+      selection.end,
+      text,
+    );
+    sendController.text = newText;
+  }
+
+  StreamSubscription<html.Event>? _webPasteSubscription;
+
+  void _attachWebPasteListener() {
+    if (!kIsWeb) return;
+    _webPasteSubscription?.cancel();
+    _webPasteSubscription = html.document.onPaste.listen(_onWebPaste);
+  }
+
+  void _detachWebPasteListener() {
+    _webPasteSubscription?.cancel();
+    _webPasteSubscription = null;
+  }
+
+  Future<void> _onWebPaste(html.Event event) async {
+    if (!mounted) return;
+    if (!inputFocus.hasFocus) {
+      final activeTag = html.document.activeElement?.tagName.toLowerCase();
+      if (activeTag == 'input' || activeTag == 'textarea') {
+        return;
+      }
+    }
+
+    final clipboardEvent = event as html.ClipboardEvent;
+    final clipboardData = clipboardEvent.clipboardData;
+    if (clipboardData == null) return;
+
+    final items = clipboardData.items;
+    if (items == null) return;
+    final itemCount = items.length ?? 0;
+    if (itemCount == 0) return;
+
+    html.Blob? imageBlob;
+    for (var i = 0; i < itemCount; i++) {
+      final item = items[i];
+      if (item.kind != 'file') continue;
+      final type = item.type ?? '';
+      if (!type.startsWith('image/')) continue;
+      imageBlob = item.getAsFile();
+      if (imageBlob != null) break;
+    }
+    if (imageBlob == null) return;
+
+    final reader = html.FileReader();
+    final completer = Completer<Uint8List>();
+    reader.onLoadEnd.listen((_) {
+      final result = reader.result;
+      if (result is Uint8List) {
+        completer.complete(result);
+      } else if (result is List<int>) {
+        completer.complete(Uint8List.fromList(result));
+      } else {
+        completer.completeError(
+          StateError(
+            'Unexpected FileReader result type: ${result.runtimeType}',
+          ),
+        );
+      }
+    });
+    reader.onError.listen(completer.completeError);
+    reader.readAsArrayBuffer(imageBlob);
+
+    try {
+      final bytes = await completer.future;
+      clipboardEvent.preventDefault();
+      if (!mounted) return;
+      _showUploadDialog(bytes, null);
+    } catch (e, s) {
+      Logs().w('Failed to read pasted clipboard image', e, s);
     }
   }
 
@@ -444,6 +527,7 @@ class ChatController extends State<ChatPageWithRoom>
         : '';
     WidgetsBinding.instance.addObserver(this);
     _tryLoadTimeline();
+    _attachWebPasteListener();
 
     // Listen for call state updates
     _syncSubscription = room.client.onSync.stream.listen((_) {
@@ -638,6 +722,7 @@ class ChatController extends State<ChatPageWithRoom>
 
   @override
   void dispose() {
+    _detachWebPasteListener();
     closeContextMenu?.call();
     closeContextMenu = null;
     timeline?.cancelSubscriptions();

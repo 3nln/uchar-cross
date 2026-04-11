@@ -8,6 +8,7 @@ import 'package:fluffychat/utils/platform_infos.dart';
 import 'package:fluffychat/widgets/avatar.dart';
 import 'package:fluffychat/widgets/hover_builder.dart';
 import 'package:fluffychat/widgets/matrix.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:matrix/matrix.dart';
@@ -293,16 +294,18 @@ class ChatInputRow extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2.0),
                       child: InputBar(
-                        bindings: {
-                          const SingleActivator(LogicalKeyboardKey.keyV, control: true): () {
-                            debugPrint("Ctrl + V");
-                            controller.handlePaste();
-                          },
-                          const SingleActivator(LogicalKeyboardKey.keyV, meta: true): () {
-                            debugPrint("Cmd + V");
-                            controller.handlePaste();
-                          },
-                        },
+                        bindings: kIsWeb
+                            ? const <ShortcutActivator, VoidCallback>{}
+                            : {
+                                const SingleActivator(
+                                  LogicalKeyboardKey.keyV,
+                                  control: true,
+                                ): controller.handlePaste,
+                                const SingleActivator(
+                                  LogicalKeyboardKey.keyV,
+                                  meta: true,
+                                ): controller.handlePaste,
+                              },
                         room: controller.room,
                         minLines: 1,
                         maxLines: 8,
