@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:matrix/matrix.dart';
 
+import '../../config/app_config.dart';
 import '../element_call/call_connection_state.dart';
 import '../widget_api/element_call/element_call_widget.dart';
 import '../widget_api/element_call/participants_tracker.dart';
@@ -215,6 +216,13 @@ class GroupCall {
     }
   }
 
+  /// Public accessors for WebCallScreen (web platform).
+  void onWidgetJoined() => _onWidgetJoined();
+  Future<void> createCallMembership() => _createCallMembership();
+  void startMembershipRefreshTimer() => _startMembershipRefreshTimer();
+  void setConnectionState(CallConnectionState state) =>
+      _setConnectionState(state);
+
   void _onWidgetJoined() {
     Logs().i('[CallKit.GroupCall] _onWidgetJoined: state=$_connectionState');
     // Cancel join timeout - widget successfully joined
@@ -281,12 +289,11 @@ class GroupCall {
 
     final content = {
       'application': 'm.call',
-      'call_id': room.id,
+      'call_id': '',
       'scope': 'm.room',
       'device_id': deviceId,
-      'expires_ts': expiresTs,
-      // Always signal E2EE capability if room is encrypted (room-level)
-      // Device-level E2EE participation is controlled via perParticipantE2EE URL param
+      'expires': 7200000, // 2 hours in ms (relative, not absolute)
+      'membershipID': '${userId}:$deviceId',
       if (room.encrypted) 'm.encryption': 'perParticipantKeys',
       'focus_active': {
         'type': 'livekit',
@@ -370,7 +377,7 @@ class GroupCall {
         final foci = data['org.matrix.msc4143.rtc_foci'];
 
         if (foci is List && foci.isNotEmpty) {
-          const url = "https://livekit-jwt.call.element.io";
+          final url = AppConfig.livekitJwtUrl;
           Logs().d('[CallKit.GroupCall] _getLiveKitUrl: using url=$url');
           return url;
         }
@@ -383,7 +390,7 @@ class GroupCall {
       );
     }
 
-    const fallbackUrl = 'https://livekit-jwt.call.element.io';
+    final fallbackUrl = AppConfig.livekitJwtUrl;
     Logs().d(
       '[CallKit.GroupCall] _getLiveKitUrl: using fallback url=$fallbackUrl',
     );

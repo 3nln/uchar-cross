@@ -69,4 +69,8 @@ abstract class AppConfig {
 
   static const String mainIsolatePortName = 'main_isolate';
   static const String pushIsolatePortName = 'push_isolate';
+
+  // Element Call / LiveKit configuration
+  static const String elementCallBaseUrl = 'https://call.uchar.uz';
+  static const String livekitJwtUrl = 'https://livekit-jwt.uchar.uz';
 }

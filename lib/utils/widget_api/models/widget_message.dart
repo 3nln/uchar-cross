@@ -114,7 +114,7 @@ class WidgetAction {
   static const getOpenId = 'get_openid';
 
   // MSC2876: Read events
-  static const readEvent = 'read_event';
+  static const readEvent = 'org.matrix.msc2876.read_events';
 
   // Send events
   static const sendEvent = 'send_event';

@@ -1515,21 +1515,24 @@ class ChatController extends State<ChatPageWithRoom>
       return;
     }
 
-    // Request camera and microphone permissions
-    final cameraStatus = await Permission.camera.request();
-    final micStatus = await Permission.microphone.request();
+    // Request camera and microphone permissions (mobile only).
+    // On desktop and web, the WebView/browser handles media permissions.
+    if (PlatformInfos.isMobile) {
+      final cameraStatus = await Permission.camera.request();
+      final micStatus = await Permission.microphone.request();
 
-    if (!cameraStatus.isGranted || !micStatus.isGranted) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Camera and microphone permissions are required for calls',
+      if (!cameraStatus.isGranted || !micStatus.isGranted) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Camera and microphone permissions are required for calls',
+              ),
             ),
-          ),
-        );
+          );
+        }
+        return;
       }
-      return;
     }
 
     // Show outgoing CallKit call on mobile and capture UUID

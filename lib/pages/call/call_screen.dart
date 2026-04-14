@@ -13,12 +13,10 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 
+import '../../config/app_config.dart';
 import '../../utils/callkit/call_store.dart';
 import '../../utils/callkit/group_call.dart';
 import '../../utils/element_call/call_connection_state.dart';
-
-const baseUrl = 'https://call.element.io';
-const parentUrl = 'https://call.element.io';
 
 /// Element Call screen.
 class CallScreen extends StatefulWidget {
@@ -74,8 +72,8 @@ class _CallScreenState extends State<CallScreen> {
         room: room!,
         client: room!.client,
         autoReconnect: false,
-        baseUrl: baseUrl,
-        parentUrl: parentUrl,
+        baseUrl: AppConfig.elementCallBaseUrl,
+        parentUrl: AppConfig.elementCallBaseUrl,
         callKitUuid: _callKitUuid,
         theme: theme,
       );
@@ -266,7 +264,7 @@ class _CallScreenState extends State<CallScreen> {
             );
             await controller.loadData(
               data: wrapperHtml,
-              baseUrl: WebUri(parentUrl),
+              baseUrl: WebUri(AppConfig.elementCallBaseUrl),
               mimeType: 'text/html',
               encoding: 'utf-8',
             );

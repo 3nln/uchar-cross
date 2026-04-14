@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
+import '../../widgets/fluffy_chat_app.dart';
 import '../platform_infos.dart';
 import 'callkit_service.dart';
 
@@ -23,7 +25,6 @@ class CallMonitor {
   final Set<String> _roomsWithActiveCall = {};
 
   void start(Client client) {
-    if (!PlatformInfos.isMobile) return;
 
     _client = client;
     Logs().i('[CallMonitor] Starting call monitor');
@@ -137,12 +138,15 @@ class CallMonitor {
 
     Logs().i('[CallMonitor] Showing CallKit for call.notify in room $roomId');
 
-    // Show CallKit
-    CallKitService.instance.showIncomingCall(
-      room: room,
-      callerName: callerName,
-      callerAvatar: callerAvatar,
-    );
+    if (PlatformInfos.isMobile) {
+      CallKitService.instance.showIncomingCall(
+        room: room,
+        callerName: callerName,
+        callerAvatar: callerAvatar,
+      );
+    } else {
+      _showDesktopIncomingCallDialog(room, callerName);
+    }
   }
 
   Future<void> _handleCallMemberEvent(
@@ -158,8 +162,9 @@ class CallMonitor {
     if (content.isEmpty) {
       Logs().v('[CallMonitor] Call ended in room $roomId');
       _roomsWithActiveCall.remove(roomId);
-      // End CallKit if still ringing (remote hangup before answer)
-      await CallKitService.instance.endCallByRoomId(roomId);
+      if (PlatformInfos.isMobile) {
+        await CallKitService.instance.endCallByRoomId(roomId);
+      }
       return;
     }
 
@@ -230,13 +235,54 @@ class CallMonitor {
     final callerAvatar =
         callerAvatarUrl != null ? Uri.tryParse(callerAvatarUrl) : null;
 
-    Logs().i('[CallMonitor] Showing CallKit for incoming call in room $roomId');
+    Logs().i('[CallMonitor] Incoming call in room $roomId');
 
-    // Show CallKit
-    CallKitService.instance.showIncomingCall(
-      room: room,
-      callerName: callerName,
-      callerAvatar: callerAvatar,
+    if (PlatformInfos.isMobile) {
+      CallKitService.instance.showIncomingCall(
+        room: room,
+        callerName: callerName,
+        callerAvatar: callerAvatar,
+      );
+    } else {
+      FluffyChatApp.router.go('/rooms/$roomId/call');
+    }
+  }
+
+  /// Show incoming call dialog on desktop/web.
+  void _showDesktopIncomingCallDialog(Room room, String? callerName) {
+    final context = FluffyChatApp
+        .router.routerDelegate.navigatorKey.currentContext;
+    if (context == null) return;
+
+    final displayName = callerName ?? room.getLocalizedDisplayname();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Incoming Call'),
+        content: Text('$displayName is calling...'),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+            icon: const Icon(Icons.call_end, color: Colors.red),
+            label: const Text('Reject'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              FluffyChatApp.router.go('/rooms/${room.id}/call');
+            },
+            icon: const Icon(Icons.call),
+            label: const Text('Accept'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.green,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

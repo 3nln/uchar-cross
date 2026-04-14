@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:fluffychat/config/themes.dart';
 import 'package:fluffychat/pages/archive/archive.dart';
 import 'package:fluffychat/pages/bootstrap/bootstrap_dialog.dart';
 import 'package:fluffychat/pages/call/call_screen.dart';
+import 'package:fluffychat/pages/call/web_call_screen.dart';
 import 'package:fluffychat/pages/chat/chat.dart';
 import 'package:fluffychat/pages/chat_access_settings/chat_access_settings_controller.dart';
 import 'package:fluffychat/pages/chat_details/chat_details.dart';
@@ -491,13 +493,14 @@ abstract class AppRoutes {
                 ),
                 GoRoute(
                   path: '/call',
-                  pageBuilder: (context, state) => defaultPageBuilder(
-                    context,
-                    state,
-                    CallScreen(
-                      roomId: state.pathParameters['roomid']!,
-                    ),
-                  ),
+                  pageBuilder: (context, state) {
+                    final roomId = state.pathParameters['roomid']!;
+                    // Use web-specific call screen on web platform
+                    final Widget screen = kIsWeb
+                        ? WebCallScreen(roomId: roomId)
+                        : CallScreen(roomId: roomId);
+                    return defaultPageBuilder(context, state, screen);
+                  },
                 ),
               ],
             ),

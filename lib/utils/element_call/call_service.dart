@@ -7,6 +7,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:matrix/matrix.dart';
 
+import '../../config/app_config.dart';
+
 /// Service for managing MatrixRTC group calls.
 class CallService {
   static Timer? _expiryRefreshTimer;
@@ -344,8 +346,8 @@ class CallService {
           s);
     }
 
-    // Fallback to Element's hosted LiveKit
-    const fallbackUrl = 'https://livekit-jwt.call.element.io';
+    // Fallback LiveKit URL from app config
+    final fallbackUrl = AppConfig.livekitJwtUrl;
     Logs().i(
         '[ElementCall.CallService] _getLiveKitUrl: using fallback Element LiveKit: $fallbackUrl');
     return fallbackUrl;

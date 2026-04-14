@@ -344,6 +344,20 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
     }
 
     createVoipPlugin();
+
+    // Start call monitor for incoming call detection (all platforms)
+    CallMonitor.instance.start(client);
+
+    // Initialize CallKit on mobile
+    if (PlatformInfos.isMobile) {
+      CallKitService.instance.initialize();
+      CallKitService.instance.onCallAccepted = (roomId, callUuid) async {
+        FluffyChatApp.router.go(
+          '/rooms/$roomId/call',
+          extra: {'callKitUuid': callUuid},
+        );
+      };
+    }
   }
 
   Future<void> createVoipPlugin() async {
@@ -382,7 +396,8 @@ class MatrixState extends State<Matrix> with WidgetsBindingObserver {
 
     linuxNotifications?.close();
 
-    // Dispose CallKit services
+    // Dispose calling services
+    CallMonitor.instance.stop();
     if (PlatformInfos.isMobile) {
       CallKitService.instance.dispose();
     }

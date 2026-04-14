@@ -165,12 +165,11 @@ class VoipPlugin with WidgetsBindingObserver implements WebRTCDelegate {
   }
 
   @override
-  // TODO: implement keyProvider
-  EncryptionKeyProvider? get keyProvider => throw UnimplementedError();
+  EncryptionKeyProvider? get keyProvider => null;
 
   @override
-  Future<void> registerListeners(CallSession session) {
-    // TODO: implement registerListeners
-    throw UnimplementedError();
+  Future<void> registerListeners(CallSession session) async {
+    // CallSession listeners are already set up in addCallingOverlay
+    // via the Calling widget's initialize() method.
   }
 }

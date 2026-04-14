@@ -133,10 +133,10 @@ class WidgetMachine {
       WidgetAction.searchUsers => _handleSearchUsers(msg),
       WidgetAction.uploadFile => _handleUploadFile(msg),
       WidgetAction.downloadFile => _handleDownloadFile(msg),
-      WidgetAction.elementClose => [const WidgetClose()],
-      WidgetAction.elementJoin => [const WidgetJoin()],
+      WidgetAction.elementClose => [SendToWidget(msg.respond({})), const WidgetClose()],
+      WidgetAction.elementJoin => [SendToWidget(msg.respond({})), const WidgetJoin()],
       WidgetAction.elementDeviceMute => _handleElementDeviceMute(msg),
-      WidgetAction.elementHangup => _handleElementHangup(msg),
+      WidgetAction.elementHangup => [SendToWidget(msg.respond({})), const WidgetHangup()],
       _ => () {
           Logs().w(
             '[WidgetAPI.WidgetMachine] _handleFromWidget: unknown action=${msg.action}',
